@@ -1,4 +1,5 @@
 library(binom)
+source("prepare_plots.R")
 
 col1 <- "#d95f02"
 col2 <- "#7570b3"
