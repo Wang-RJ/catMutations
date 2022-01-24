@@ -48,6 +48,9 @@ mutation_counts$GTFemale <- as.numeric(mutation_counts$GTFemale / 365)
 mutation_counts$F_phase <- aggregate(denovo_candidates$COMBINED_PHASE == "F", by = list(denovo_candidates$PROBAND), FUN = function(x) { sum(x, na.rm = TRUE)} )$x
 mutation_counts$M_phase <- aggregate(denovo_candidates$COMBINED_PHASE == "M", by = list(denovo_candidates$PROBAND), FUN = function(x) { sum(x, na.rm = TRUE)} )$x
 
+mutation_counts$rbF_phase <- aggregate(denovo_candidates$READBASED_PHASE == "F", by = list(denovo_candidates$PROBAND), FUN = function(x) { sum(x, na.rm = TRUE)} )$x
+mutation_counts$rbM_phase <- aggregate(denovo_candidates$READBASED_PHASE == "M", by = list(denovo_candidates$PROBAND), FUN = function(x) { sum(x, na.rm = TRUE)} )$x
+
 ## Writing positions for samtools faidx to check for CpG site
 #
 # dnc_pos <- denovo_candidates[,1:2]
