@@ -11,33 +11,42 @@ DOB_table$Date <- as.Date(DOB_table$Date, format = '%m/%d/%Y')
 DOB_vector <- DOB_table$Date
 names(DOB_vector) <- DOB_table$Individual
 
-construct_mframe <- function(dnc_frame, callability_bytrio) {
-  mu_frame <- aggregate(dnc_frame[,1], by = list(dnc_frame$trio), FUN = length)
-  names(mu_frame) <- c("trio", "mutations")
-  mu_frame <- mu_frame[order(as.numeric(substring(mu_frame$trio, 5))),]
-  
-  mu_frame[["callability"]] <- callability_bytrio
-  mu_frame[["pile_size"]] <- auto_size
-  mu_frame[["callable_size"]] <- callability_bytrio * auto_size
-  
-  mu_frame[["rate"]] <- mu_frame$mutations / (2 * mu_frame$callable_size)
-  mu_frame[["rate_SN"]] <- mu_frame$rate * 1e8
-  
-  DOB_idx <- match(mu_frame$trio, trio_table$trio)
-  mu_frame$GTMale <- DOB_vector[as.character(trio_table[DOB_idx,]$Child)] - DOB_vector[as.character(trio_table[DOB_idx,]$Father)]
-  mu_frame$GTFemale <- DOB_vector[as.character(trio_table[DOB_idx,]$Child)] - DOB_vector[as.character(trio_table[DOB_idx,]$Mother)]
-  mu_frame$GTMale <- as.numeric(mu_frame$GTMale / 365)
-  mu_frame$GTFemale <- as.numeric(mu_frame$GTFemale / 365)
-  
-  return(mu_frame)
-}
+hapsize_table <- read.table("tables/samtools_depth.table")[,seq(2,36,2)]
+auto_size <- rowSums(hapsize_table)
+names(auto_size) <- paste("trio", 1:11, sep = "")
 
-phase_list <- lapply(split(factor(denovo_candidates$rb_phase), denovo_candidates$trio), table)
-phase_frame <- as.data.frame(do.call(rbind, phase_list))
-phase_frame$trio <- rownames(phase_frame)
-GATK_mucount$F_phase <- NA
-GATK_mucount$M_phase <- NA
-GATK_mucount[match(phase_frame$trio, GATK_mucount$trio),][c("F_phase", "M_phase")] <- phase_frame[,1:2]
+denovo_candidates <- read.table("denovo_table.txt", header = TRUE)
+
+hetcallability_table <- read.table("tables/het_callabilityGQ70.table")
+names(hetcallability_table) <- c("denom", "transmit", "dpgq", "bam", "ab30", "ab35", "ab40", "ab45", "ab50", "ab55", "ab60")
+
+homcallability_table <- read.table("tables/hom_callabilityGQ70.table")
+names(homcallability_table) <- c("denom", "transmit", "dpgq", "bamad1", "bamad0")
+
+callability_table <- hetcallability_table[["ab35"]] / hetcallability_table[["transmit"]] *
+  (homcallability_table[["bamad0"]] / homcallability_table[["transmit"]])**2
+
+mutation_counts <- aggregate(dnc_frame[,1], by = list(dnc_frame$PROBAND), FUN = length)
+names(mutation_counts) <- c("proband", "mutations")
+mutation_counts[["trio"]] <- c("trio11", paste("trio", 1:10, sep = ""))
+mutation_counts[["callability"]] <- callability_table 
+mutation_counts[["pile_size"]] <- auto_size 
+mutation_counts[["callable_size"]] <- mutation_counts$callability * mutation_counts$pile_size
+
+mutation_counts[["rate"]] <- mutation_counts$mutations / (2 * mutation_counts$callable_size)
+
+trio_table <- read.csv("tables/trio_tableMFC.csv", header = FALSE)
+names(trio_table) <- c("Mother", "Father", "Child")
+trio_table$trio <- paste("trio", 1:11, sep = "")
+
+DOB_idx <- match(mutation_counts$trio, trio_table$trio)
+mutation_counts$GTMale <- DOB_vector[as.character(trio_table[DOB_idx,]$Child)] - DOB_vector[as.character(trio_table[DOB_idx,]$Father)]
+mutation_counts$GTFemale <- DOB_vector[as.character(trio_table[DOB_idx,]$Child)] - DOB_vector[as.character(trio_table[DOB_idx,]$Mother)]
+mutation_counts$GTMale <- as.numeric(mutation_counts$GTMale / 365)
+mutation_counts$GTFemale <- as.numeric(mutation_counts$GTFemale / 365)
+
+mutation_counts$F_phase <- aggregate(denovo_candidates$COMBINED_PHASE == "F", by = list(denovo_candidates$PROBAND), FUN = function(x) { sum(x, na.rm = TRUE)} )$x
+mutation_counts$M_phase <- aggregate(denovo_candidates$COMBINED_PHASE == "M", by = list(denovo_candidates$PROBAND), FUN = function(x) { sum(x, na.rm = TRUE)} )$x
 
 ## Writing positions for samtools faidx to check for CpG site
 #
@@ -48,16 +57,9 @@ GATK_mucount[match(phase_frame$trio, GATK_mucount$trio),][c("F_phase", "M_phase"
 # write.table(dnc_pos, file = "dncGQ70_pos.txt", quote = FALSE, sep = "\t", row.names = FALSE, col.names = FALSE)
 # $ samtools faidx ref/GCA_000181335.4_Felis_catus_9.0_genomic.fna -r dncGQ70_pos.txt > dncGQ70_seq.txt
 
-dnc_seq <- read.table("dncGQ70_seq.txt", comment.char = ">")
+dnc_seq <- read.table("tables/dncGQ70_seq.txt", comment.char = ">")
 denovo_candidates$triplet <- as.vector(sapply(dnc_seq, toupper))
 denovo_candidates$CpG <- substr(denovo_candidates$triplet, 1, 2) == "CG" | substr(denovo_candidates$triplet, 2, 3) == "CG"
-
-cpg_mutable <- sapply(split(denovo_candidates$CpG, denovo_candidates$trio), table)
-cpg_mucount <- sapply(cpg_mutable, sum) - sapply(cpg_mutable, "[[", "FALSE")
-
-GATK_mucount$CpG_mutations <- NA
-GATK_mucount[match(names(cpg_mucount), GATK_mucount$trio),]$CpG_mutations <- cpg_mucount
-GATK_mucount$CpG_rate <- GATK_mucount$CpG_mutations / (2 * GATK_mucount$callable_size * 27735107 / 2.675e9)
 
 collapse_spectra <- function(mtable) {
   tmp <- mtable[which(mtable > 0)]
@@ -68,7 +70,7 @@ collapse_spectra <- function(mtable) {
   tmp["C>A"] <- tmp["C>A"] + tmp["G>T"]
   tmp["C>G"] <- tmp["C>G"] + tmp["G>C"]
   tmp["C>T"] <- tmp["C>T"] + tmp["G>A"]
-
+  
   tmp[which(is.na(tmp))] <- 0  
   return(tmp[c("A>C", "A>G", "A>T", "C>A", "C>G", "C>T")])
 }
