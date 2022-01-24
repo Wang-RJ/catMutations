@@ -5,7 +5,7 @@ decodeDNM_raw <- read.table("tables/decode_DNMs.tsv", header = TRUE)
 decodeDNM <- cbind(aggregate(decodeDNM_raw[c("Fathers_age_at_conception", "Mothers_age_at_conception")], by = list(decodeDNM_raw$Proband_nr), FUN = mean),
                    mutations = aggregate(decodeDNM_raw, by = list(decodeDNM_raw$Proband_nr), FUN = length)$Fathers_age_at_conception)
 
-DOB_table <- read.table("DOB.txt")
+DOB_table <- read.table("tables/DOB.txt")
 names(DOB_table) <- c("Individual", "Date")
 DOB_table$Date <- as.Date(DOB_table$Date, format = '%m/%d/%Y')
 DOB_vector <- DOB_table$Date
