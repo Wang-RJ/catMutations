@@ -1,16 +1,38 @@
 library(binom)
-source("prepare_plots.R")
 
 col1 <- "#d95f02"
 col2 <- "#7570b3"
 col3 <- "#e7298a"
 
-ggplot(mutation_counts, aes(x = GTMale - 0.5, y = rate)) +
+# Figure 2
+ggplot(mutation_counts, aes(x = GTMale, y = rate)) + coord_cartesian(xlim = c(0, 13), ylim = c(0,1.75) * 1e-8) +
+  scale_x_continuous(limits = c(0,70), breaks = seq(0,30,5)) +
+  scale_y_continuous(limits = c(0,10) * 1e-8, breaks = seq(0,2,0.25) * 1e-8) +
   geom_smooth(fullrange = TRUE, method = lm, color = col1, fill = col1) +
+  geom_smooth(fullrange = TRUE, data = decodeDNM, method = lm, aes(x = Fathers_age_at_conception - 13, y = mu_rate), se = FALSE, cex = 1, lty = 1) +
+  geom_smooth(fullrange = TRUE, data = decodeDNM, method = lm, aes(x = Fathers_age_at_conception, y = mu_rate), se = FALSE, cex = 1, lty = 2) +
   geom_point(bg = col1, size = 4, shape = 21) + theme_classic() +
-  theme(text = element_text(size = 18)) + ylab("mutation rate per generation") + xlab("paternal age")
+  theme(text = element_text(size = 18)) + ylab("mutation rate") + xlab("Paternal age")
+
+# Figure 3
+predicted_spectra_0to50 <- sapply(seq(0,50,1), function(mean_age) { return(predict_spectrum(mean_age, mean_age)) })
+humanpredict_ggframe <- data.frame(frequency = as.vector(predicted_spectra_0to50 - human_spectrum),
+                                   class = rep(rownames(predicted_spectra_0to50), ncol(predicted_spectra_0to50)),
+                                   age = rep(seq(0,50), each = nrow(predicted_spectra_0to50)))
+
+ggplot(humanpredict_ggframe, aes(x = age, y = frequency, col = class)) + geom_line(size = 0.75) + theme_bw() +
+  scale_color_brewer(type = 'qual', palette = 'Dark2') + geom_vline(xintercept = 16.8) + geom_vline(xintercept = 3.8)
+
+cathuman_ggframe <- rbind(data.frame(frequency = predict_spectrum(4.68, 2.92), class = mut_classes, group = "total longevity"),
+                          data.frame(frequency = cat_spectrum, class = mut_classes, group = "cat"),
+                          data.frame(frequency = predict_spectrum(17.68, 15.92), class = mut_classes, group = "reproductive longevity"))
+
+ggplot(cathuman_ggframe, aes(x = class, y = frequency, fill = factor(group, levels = c("total longevity", "cat", "reproductive longevity")))) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.7) +
+  theme_bw() + scale_fill_manual(name = "group", values = c("#67a9cf", "#4d4d4d", "#ef8a62"))
 
 # Figure S1
+# read-based only for this plot because transmission based will add phased mutations to a few specific trios
 ggplot(data = mutation_counts) + labs(x = "Parental age", y = "Phased mutation count") +
   geom_smooth(aes(x = GTMale, y = rbM_phase), method = "glm",
               method.args = list(family = poisson(link = "identity")),
@@ -39,4 +61,3 @@ mubar <- barplot(t(matrix(c(phased_male_table, phased_female_table), ncol = 2) /
                  legend.text = c("M", "F"), args.legend = list(x = "topleft"), ylim = c(0,0.55))
 binomCI <- binom.confint(as.vector(phased_mut_table), sum(phased_mut_table), methods = "wilson")
 segments(mubar, binomCI$lower, mubar, binomCI$upper)
-
