@@ -30,12 +30,13 @@ mutation_counts <- aggregate(denovo_candidates[,1], by = list(denovo_candidates$
 names(mutation_counts) <- c("proband", "mutations")
 
 mutation_counts[["trio"]] <- c("trio11", paste("trio", 1:10, sep = ""))
+mutation_counts <- mutation_counts[order(as.numeric(substring(mutation_counts$trio, 5))),]
+
 mutation_counts[["callability"]] <- callability_table 
 mutation_counts[["pile_size"]] <- auto_size 
+
 mutation_counts[["callable_size"]] <- mutation_counts$callability * mutation_counts$pile_size
 mutation_counts[["rate"]] <- mutation_counts$mutations / (2 * mutation_counts$callable_size)
-
-mutation_counts <- mutation_counts[order(as.numeric(substring(mutation_counts$trio, 5))),]
 
 trio_table <- read.csv("tables/trio_tableMFC.csv", header = FALSE)
 names(trio_table) <- c("Mother", "Father", "Child")
