@@ -1,4 +1,4 @@
-The following files in this directory are a necessary accompaniment for reproducing the plots from our cat mutation study.
+The following files in this directory are a necessary accompaniment for reproducing the plots from our cat mutation study:
 
 **decode_DNMs.tsv**\
 Publicly available human mutation data from Jónsson et al. (2017; doi: 10.1038/nature24018)
@@ -10,7 +10,7 @@ Nucleotide triplets surrounding each de novo site from above study, queried from
 Nucleotide triplets surrounding each de novo site from our cat mutation study, queried from the cat reference genome.
 
 **DOB.txt**\
-Birth dates of individuals in the cat pedigrees.
+Birthdates of individuals in the cat pedigrees.
 
 **het_callabilityGQ70.table**\
 Heterozygote callability calculated from sampling at GQ threshold of 70, see Methods in main text.
