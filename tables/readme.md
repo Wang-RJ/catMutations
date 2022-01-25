@@ -1,4 +1,4 @@
-The following files in this directory are necessary to reproduce the plots from our cat mutation study.
+The following files in this directory are a necessary accompaniment for reproducing the plots from our cat mutation study.
 
 **decode_DNMs.tsv**\
 Publicly available human mutation data from Jónsson et al. (2017; doi: 10.1038/nature24018)
