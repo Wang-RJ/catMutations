@@ -26,8 +26,9 @@ names(homcallability_table) <- c("denom", "transmit", "dpgq", "bamad1", "bamad0"
 callability_table <- hetcallability_table[["ab35"]] / hetcallability_table[["transmit"]] *
   (homcallability_table[["bamad0"]] / homcallability_table[["transmit"]])**2
 
-mutation_counts <- aggregate(dnc_frame[,1], by = list(dnc_frame$PROBAND), FUN = length)
+mutation_counts <- aggregate(denovo_candidates[,1], by = list(denovo_candidates$PROBAND), FUN = length)
 names(mutation_counts) <- c("proband", "mutations")
+
 mutation_counts[["trio"]] <- c("trio11", paste("trio", 1:10, sep = ""))
 mutation_counts[["callability"]] <- callability_table 
 mutation_counts[["pile_size"]] <- auto_size 
