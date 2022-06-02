@@ -7,7 +7,6 @@ col3 <- "#e7298a"
 
 # Figure 2
 # Some calculations for Poisson regression with proper adjustment for callable genome size
-# 
 mutation_counts$diploid_callable <- mutation_counts$callable_size * 2
 mutation_counts$Z_male <- mutation_counts$diploid_callable * mutation_counts$GTMale
 
