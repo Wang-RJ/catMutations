@@ -6,14 +6,34 @@ col2 <- "#7570b3"
 col3 <- "#e7298a"
 
 # Figure 2
-ggplot(mutation_counts, aes(x = GTMale, y = rate)) + coord_cartesian(xlim = c(0, 13), ylim = c(0,1.75) * 1e-8) +
+# Some calculations for Poisson regression with proper adjustment for callable genome size
+# 
+mutation_counts$diploid_callable <- mutation_counts$callable_size * 2
+mutation_counts$Z_male <- mutation_counts$diploid_callable * mutation_counts$GTMale
+
+cat_pois_model <- glm(mutations ~ Z_male + diploid_callable + 0,
+                      family = poisson(link = "identity"), data = mutation_counts)
+cat_pois_fit <- data.frame(GTMale = seq(0,15,1),
+                           predict(cat_pois_model, data.frame(Z_male = seq(0,15,1) * 2 * cat_haploid,
+                                                              diploid_callable = 2 * cat_haploid), se = TRUE))
+
+ggplot(mutation_counts, aes(x = GTMale, y = rate)) + geom_point(bg = col1, size = 4, shape = 21) + 
+  geom_line(aes(x = GTMale, y = fit / (2 * cat_haploid)), data = cat_pois_fit, color = col1) +
+  geom_ribbon(aes(x = GTMale, y = fit / (2 * cat_haploid),
+                  ymin = fit / (2 * cat_haploid) - 1.96 * se.fit / (2 * cat_haploid),
+                  ymax = fit / (2 * cat_haploid) + 1.96 * se.fit / (2 * cat_haploid)),
+              data = cat_pois_fit, fill = col1, alpha = 0.3) +
+  geom_smooth(aes(x = Fathers_age_at_conception - 13, y = mutations / (2 * human_haploid)),
+              data = decodeDNM, method = glm, method.args = list(family = poisson(link = "identity")),
+              fullrange = TRUE, se = FALSE, cex = 1, lty = 1) +
+  geom_smooth(aes(x = Fathers_age_at_conception, y = mutations / (2 * human_haploid)),
+              data = decodeDNM, method = glm, method.args = list(family = poisson(link = "identity")),
+              fullrange = TRUE, se = FALSE, cex = 1, lty = 2) +
+  coord_cartesian(xlim = c(0, 13), ylim = c(0,1.75) * 1e-8) +
   scale_x_continuous(limits = c(0,70), breaks = seq(0,30,5)) +
   scale_y_continuous(limits = c(0,10) * 1e-8, breaks = seq(0,2,0.25) * 1e-8) +
-  geom_smooth(fullrange = TRUE, method = lm, color = col1, fill = col1) +
-  geom_smooth(fullrange = TRUE, data = decodeDNM, method = lm, aes(x = Fathers_age_at_conception - 13, y = mu_rate), se = FALSE, cex = 1, lty = 1) +
-  geom_smooth(fullrange = TRUE, data = decodeDNM, method = lm, aes(x = Fathers_age_at_conception, y = mu_rate), se = FALSE, cex = 1, lty = 2) +
-  geom_point(bg = col1, size = 4, shape = 21) + theme_classic() +
-  theme(text = element_text(size = 18)) + ylab("mutation rate") + xlab("Paternal age")
+  theme_classic() + theme(text = element_text(size = 18)) +
+  ylab("mutation rate") + xlab("Paternal age")
 
 # Figure 3
 predicted_spectra_0to50 <- sapply(seq(0,50,1), function(mean_age) { return(predict_spectrum(mean_age, mean_age)) })
