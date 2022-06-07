@@ -5,13 +5,23 @@ col1 <- "#d95f02"
 col2 <- "#7570b3"
 col3 <- "#e7298a"
 
-# Figure 2
 # Some calculations for Poisson regression with proper adjustment for callable genome size
 mutation_counts$diploid_callable <- mutation_counts$callable_size * 2
 mutation_counts$Z_male <- mutation_counts$diploid_callable * mutation_counts$GTMale
+mutation_counts$Z_female <- mutation_counts$diploid_callable * mutation_counts$GTFemale
 
 cat_pois_model <- glm(mutations ~ Z_male + diploid_callable + 0,
                       family = poisson(link = "identity"), data = mutation_counts)
+cat_full_model <- glm(mutations ~ Z_male + Z_female + diploid_callable + 0,
+                      family = poisson(link = "identity"), data = mutation_counts)
+
+summary(cat_full_model)
+# female coefficient not significant in full model
+summary(cat_pois_model)
+# using the reduced (male only) model, coefficient for paternal age is significant with p = 0.0077
+
+# Figure 2
+# Plot using the paternal age model
 cat_pois_fit <- data.frame(GTMale = seq(0,15,1),
                            predict(cat_pois_model, data.frame(Z_male = seq(0,15,1) * 2 * cat_haploid,
                                                               diploid_callable = 2 * cat_haploid), se = TRUE))
